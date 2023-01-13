@@ -150,8 +150,9 @@ func output_raw_video(data C.uintptr_t, frame *C.struct_video_data) {
 
 	h.frameCount++
 	if (h.frameCount % 120) == 0 {
-		stats_str := fmt.Sprintf("teleport: enqueued frame %d with timestamp %v, %d queued", h.frameCount, 
-			p.Header.Timestamp, len(h.queue))
+		writer_count := h.outstandingWriteCount.Load()
+		stats_str := fmt.Sprintf("teleport: enqueued frame %d with timestamp %v, %d queued, %d pending writes", h.frameCount, 
+			p.Header.Timestamp, len(h.queue), writer_count)
 		tmp := C.CString(stats_str)
 		C.blog_string(C.LOG_WARNING, tmp)
 		C.free(unsafe.Pointer(tmp))

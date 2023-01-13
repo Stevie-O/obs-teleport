@@ -23,11 +23,13 @@ package main
 import (
 	"net"
 	"sync"
+	"sync/atomic"
 )
 
 type Sender struct {
 	sync.Mutex
 	sync.WaitGroup
+	outstandingWriteCount atomic.Int32
 	conns map[net.Conn]any
 }
 
@@ -59,7 +61,9 @@ func (s *Sender) SenderSend(b []byte) {
 		go func(c net.Conn) {
 			defer s.Done()
 
+			s.outstandingWriteCount.Add(1)
 			_, err := c.Write(b)
+			s.outstandingWriteCount.Add(-1)
 			if err != nil {
 				c.Close()
 				s.Lock()

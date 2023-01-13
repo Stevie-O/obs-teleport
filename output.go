@@ -23,6 +23,8 @@ package main
 //
 // #include <obs-module.h>
 //
+// extern void blog_string(const int log_level, const char* string);
+//
 import "C"
 import (
 	"math"
@@ -32,6 +34,7 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+	"fmt"
 )
 
 type teleportOutput struct {
@@ -45,6 +48,7 @@ type teleportOutput struct {
 	laggedFrames int
 	offsetVideo  C.uint64_t
 	offsetAudio  C.uint64_t
+	frameCount int
 }
 
 //export output_get_name
@@ -143,6 +147,16 @@ func output_raw_video(data C.uintptr_t, frame *C.struct_video_data) {
 	}
 
 	h.queue = append(h.queue, p)
+
+	h.frameCount++
+	if (h.frameCount % 120) == 0 {
+		stats_str := fmt.Sprintf("teleport: enqueued frame %d with timestamp %v, %d queued", h.frameCount, 
+			p.Header.Timestamp, len(h.queue))
+		tmp := C.CString(stats_str)
+		C.blog_string(C.LOG_WARNING, tmp)
+		C.free(unsafe.Pointer(tmp))
+	}
+
 	h.Unlock()
 
 	h.Add(1)
